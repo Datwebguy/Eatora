@@ -8,3 +8,11 @@ document.querySelector("#theme")?.addEventListener("click", () => {
 });
 const observer = new IntersectionObserver((entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("is-visible")), { threshold: 0.18 });
 document.querySelectorAll("[data-reveal]").forEach((element) => observer.observe(element));
+const menu = document.querySelector("#menu");
+const mobileMenu = document.querySelector("#mobile-menu");
+menu?.addEventListener("click", () => {
+  const open = mobileMenu.classList.toggle("open");
+  menu.setAttribute("aria-expanded", String(open));
+  mobileMenu.setAttribute("aria-hidden", String(!open));
+});
+mobileMenu?.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => mobileMenu.classList.remove("open")));
