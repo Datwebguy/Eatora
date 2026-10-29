@@ -5,7 +5,7 @@
   "description": "Qloo-grounded dining recommendations for seniors and caregivers",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "node dev-server.js",
     "test": "node --test"
   },
   "engines": {

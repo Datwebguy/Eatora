@@ -1,3 +1,3 @@
-import { handler } from "../server.js";
+import { handler } from "../dev-server.js";
 
 export default handler;
