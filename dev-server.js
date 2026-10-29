@@ -7,7 +7,7 @@ import { SessionLog } from "./lib/session-log.js";
 import { applyConstraints } from "./lib/constraints.js";
 import { randomUUID } from "node:crypto";
 import { OpenAIClient } from "./lib/openai.js";
-import { constraintQueries, entitiesFrom, idOf, nameOf, rankPlaces, validatePlanInput } from "./lib/planner.js";
+import { constraintQueries, entitiesFrom, evidenceFor, idOf, nameOf, rankPlaces, validatePlanInput } from "./lib/planner.js";
 import { sealReceipt } from "./lib/receipt.js";
 
 const port = Number(process.env.PORT || 3000);
@@ -28,7 +28,7 @@ async function body(req) {
 
 export async function handler(req, res) {
   const sessionId = req.headers["x-session-id"] || randomUUID();
-  const session = sessions.get(sessionId) || { log: new SessionLog(), entities: new Set(), tags: new Set(), investigations: 0 };
+  const session = sessions.get(sessionId) || { log: new SessionLog(), entities: new Set(), tags: new Set(), entityRecords: new Map(), tagRecords: new Map(), investigations: 0 };
   sessions.set(sessionId, session);
   const { log } = session;
   const qloo = new QlooClient({ apiKey: process.env.QLOO_API_KEY, baseUrl: process.env.QLOO_BASE_URL, log });
@@ -44,7 +44,7 @@ export async function handler(req, res) {
       const resolved = [];
       for (const favorite of input.favorites) {
         const matches = entitiesFrom(await qloo.search(favorite, input.types));
-        for (const match of matches) if (match.entity_id || match.id) session.entities.add(match.entity_id || match.id);
+        for (const match of matches) if (idOf(match)) { session.entities.add(idOf(match)); session.entityRecords.set(idOf(match), match); }
         resolved.push({ query: favorite, choices: matches });
       }
       return json(res, 200, { resolved, calls: log.entries() }, sessionId);
@@ -56,7 +56,7 @@ export async function handler(req, res) {
       const resolved = [];
       for (const favorite of input.favorites) {
         const matches = entitiesFrom(await qloo.search(favorite));
-        for (const match of matches) if (idOf(match)) session.entities.add(idOf(match));
+        for (const match of matches) if (idOf(match)) { session.entities.add(idOf(match)); session.entityRecords.set(idOf(match), match); }
         resolved.push({ query: favorite, choices: matches });
       }
       const ambiguous = resolved.filter((item) => item.choices.length !== 1);
@@ -65,7 +65,7 @@ export async function handler(req, res) {
       const tagSignals = [];
       for (const keyword of constraintQueries(input.constraints)) {
         const matches = entitiesFrom(await qloo.tags(keyword));
-        for (const tag of matches.slice(0, 1)) if (idOf(tag)) { session.tags.add(idOf(tag)); tagSignals.push({ id: idOf(tag), label: nameOf(tag) }); }
+        for (const tag of matches.slice(0, 1)) if (idOf(tag)) { session.tags.add(idOf(tag)); session.tagRecords.set(idOf(tag), tag); tagSignals.push({ id: idOf(tag), label: nameOf(tag) }); }
       }
       const payload = await qloo.insights({ entities: signals.map((signal) => signal.id), location: input.location, tags: tagSignals.map((signal) => signal.id), take: 10 });
       const places = entitiesFrom(payload);
@@ -78,7 +78,7 @@ export async function handler(req, res) {
       const input = await body(req);
       if (!input.keyword) return json(res, 400, { error: "keyword is required" }, sessionId);
       const matches = entitiesFrom(await qloo.tags(input.keyword));
-      for (const match of matches) if (match.id || match.entity_id) session.tags.add(match.id || match.entity_id);
+      for (const match of matches) if (idOf(match)) { session.tags.add(idOf(match)); session.tagRecords.set(idOf(match), match); }
       return json(res, 200, { tags: matches, calls: log.entries() }, sessionId);
     }
     if (req.method === "POST" && url.pathname === "/recommend") {
@@ -89,13 +89,14 @@ export async function handler(req, res) {
       const resolvedTagIds = [];
       for (const keyword of constraintQueries(input.constraints || [])) {
         const matches = entitiesFrom(await qloo.tags(keyword));
-        for (const match of matches.slice(0, 1)) if (idOf(match)) { session.tags.add(idOf(match)); resolvedTagIds.push(idOf(match)); }
+        for (const match of matches.slice(0, 1)) if (idOf(match)) { session.tags.add(idOf(match)); session.tagRecords.set(idOf(match), match); resolvedTagIds.push(idOf(match)); }
       }
       const tagIds = [...new Set([...(input.tagIds || []), ...resolvedTagIds])];
       const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: tagIds, take: input.take });
       const places = entitiesFrom(payload);
       const filtered = applyConstraints(places, input.constraints).filter((item) => item.eligible);
-      return json(res, 200, { places: filtered.slice(0, 5).map(({ place, passed }) => ({ ...place, evidence: passed, constraints: passed })), calls: log.entries(), empty: places.length === 0 }, sessionId);
+      const signals = [...session.entityRecords.values(), ...session.tagRecords.values()].map((signal) => ({ id: idOf(signal), label: nameOf(signal) }));
+      return json(res, 200, { places: filtered.slice(0, 5).map(({ place, passed }) => ({ ...place, evidence: evidenceFor(place, signals), constraints: passed })), calls: log.entries(), empty: places.length === 0 }, sessionId);
     }
     if (req.method === "POST" && url.pathname === "/compare") {
       const input = await body(req);
