@@ -2,6 +2,8 @@
 
 Eatora is an agent that helps caregivers and seniors find real dining options that match personal taste and hard practical constraints.
 
+Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/). The submission requires a functional public demo, a public open-source repository, and a live Qloo-powered workflow that judges can use end to end.
+
 It is built for the Qloo Agentic Hackathon. Cultural intelligence from Qloo is the differentiator: a plain LLM guesses places and ignores local affinity; Eatora resolves real entities, queries the taste graph, and applies constraints in code with visible evidence.
 
 ## What it does
