@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Taste-led dining ideas for real-world care needs." />
+    <title>Eatora — dinner that fits</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar"><a class="brand" href="/"><span class="brand-mark">e</span><span>Eatora</span></a><span class="quiet">Thoughtful places, grounded in taste.</span></header>
+    <main>
+      <section class="hero"><p class="eyebrow">A better meal, with less guesswork</p><h1>Find somewhere that feels <em>right.</em></h1><p class="lede">Tell us what they love and what they need. Eatora connects personal taste to real places, then applies practical filters before anything reaches you.</p></section>
+      <section class="workspace">
+        <form id="finder" class="panel form-panel">
+          <div class="step"><span>01</span><div><h2>Start with their favorites</h2><p>Three to five things they already enjoy — food, music, films, or places.</p></div></div>
+          <label for="favorites">Favorites <span>one per line</span></label>
+          <textarea id="favorites" rows="5" required placeholder="chicken soup\nFrank Sinatra\nItalian restaurant\nCentral Park"></textarea>
+          <div class="field-grid"><div><label for="location">Where are you planning?</label><input id="location" required placeholder="Brooklyn, NY" /></div><div><label for="count">How many ideas?</label><select id="count"><option value="3">3 places</option><option value="5" selected>5 places</option></select></div></div>
+          <fieldset><legend>Practical needs <span>choose all that apply</span></legend><div class="checks"><label class="check"><input type="checkbox" value="Soft texture / easy-to-chew" /><span>Soft texture</span></label><label class="check"><input type="checkbox" value="Low-sodium" /><span>Low sodium</span></label><label class="check"><input type="checkbox" value="Low-heat delivery" /><span>Low heat</span></label><label class="check"><input type="checkbox" value="Avoid grapefruit" /><span>Avoid grapefruit</span></label><label class="check"><input type="checkbox" value="Limit high-potassium" /><span>Limit potassium</span></label></div></fieldset>
+          <button class="primary" type="submit"><span>Find their kind of place</span><span class="arrow">↗</span></button>
+          <p class="form-note">Recommendations are grounded in live Qloo results. Medication notes are simple exclusions, not medical advice.</p>
+        </form>
+        <aside class="aside"><div class="aside-card"><span class="spark">✦</span><h3>Made for the person at the table.</h3><p>Caregivers deserve more than a generic list. We start from the details that make a meal familiar, comfortable, and possible.</p></div><div class="aside-list"><div><b>01</b><span>Resolve real taste signals</span></div><div><b>02</b><span>Filter practical constraints</span></div><div><b>03</b><span>Show the evidence</span></div></div></aside>
+      </section>
+      <section id="results" class="results hidden"><div class="results-head"><div><p class="eyebrow">Your Eatora shortlist</p><h2>Places with a reason to be here.</h2></div><button id="new-search" class="text-button">Start over ↗</button></div><div id="ambiguity" class="notice hidden"></div><div id="cards" class="cards"></div><div class="comparison"><div class="comparison-head"><div><p class="eyebrow">A useful contrast</p><h2>Qloo, alongside a plain model.</h2></div><span class="pill">same inputs</span></div><div class="compare-grid"><article><p class="label">Eatora / Qloo</p><div id="qloo-summary" class="compare-copy">Your verified places and evidence appear above.</div></article><article><p class="label">Pure LLM</p><div id="llm-summary" class="compare-copy muted">Generating a separate, unverified planning perspective…</div></article></div></div><details class="underhood"><summary>Under the hood <span>see this session’s Qloo calls</span></summary><pre id="call-log">No calls yet.</pre></details></section>
+      <div id="status" class="status hidden" role="status"></div>
+    </main>
+    <footer><span>© Eatora</span><span>Built for care, taste, and better Tuesday nights.</span></footer>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

@@ -72,7 +72,7 @@ export async function handler(req, res) {
       return json(res, 200, { inputs: input, qlooPlan: input.qlooPlan ?? null, pureLlmPlan }, sessionId);
     }
     if (req.method === "GET") {
-      const requested = url.pathname === "/" ? "/index.html" : url.pathname;
+      const requested = url.pathname === "/" ? "/index.html" : (url.pathname === "/app" ? "/app.html" : url.pathname);
       const file = normalize(join(publicRoot, requested));
       if (file.startsWith(publicRoot)) {
         try { const content = await readFile(file); res.writeHead(200, { "content-type": mime[extname(file)] || "application/octet-stream", "cache-control": "no-cache" }); res.end(content); return; } catch { /* continue to JSON 404 */ }
