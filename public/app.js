@@ -1,4 +1,5 @@
 const state = { sessionId: localStorage.getItem("eatora-session") || "", resolved: [], input: null };
+const API_PREFIX = "/api";
 const $ = (selector) => document.querySelector(selector);
 const results = $("#results");
 const status = $("#status");
@@ -7,7 +8,7 @@ function showStatus(message) { status.textContent = message; status.classList.re
 function hideStatus() { status.classList.add("hidden"); }
 function remember(response) { const id = response.headers.get("x-session-id"); if (id) { state.sessionId = id; localStorage.setItem("eatora-session", id); } }
 async function api(path, payload) {
-  const response = await fetch(path, { method: "POST", headers: { "content-type": "application/json", ...(state.sessionId ? { "x-session-id": state.sessionId } : {}) }, body: JSON.stringify(payload) });
+  const response = await fetch(`${API_PREFIX}${path}`, { method: "POST", headers: { "content-type": "application/json", ...(state.sessionId ? { "x-session-id": state.sessionId } : {}) }, body: JSON.stringify(payload) });
   remember(response); const data = await response.json(); if (!response.ok) throw new Error(data.error || "Something went wrong"); return data;
 }
 function cards(places) { $("#cards").innerHTML = places.length ? places.map((place, i) => `<article class="place-card"><span class="place-index">0${i + 1}</span><h3>${escapeHtml(place.name || "Unnamed place")}</h3><p class="place-meta">Verified place from this session</p><div class="chips">${(place.evidence || []).map((chip) => `<span class="chip">${escapeHtml(chip)}</span>`).join("")}</div></article>`).join("") : `<div class="notice">Qloo did not return places that met every selected constraint. There are no substitute recommendations.</div>`; }

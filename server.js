@@ -26,7 +26,7 @@ async function body(req) {
 
 function entitiesFrom(payload) { return payload?.results?.entities ?? payload?.entities ?? []; }
 
-const server = http.createServer(async (req, res) => {
+export async function handler(req, res) {
   const sessionId = req.headers["x-session-id"] || randomUUID();
   const session = sessions.get(sessionId) || { log: new SessionLog(), entities: new Set(), tags: new Set() };
   sessions.set(sessionId, session);
@@ -35,6 +35,7 @@ const server = http.createServer(async (req, res) => {
   const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL });
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+    if (url.pathname.startsWith("/api/")) url.pathname = url.pathname.slice(4);
     if (req.method === "GET" && url.pathname === "/health") return json(res, 200, { ok: true, qlooConfigured: Boolean(process.env.QLOO_API_KEY), openaiConfigured: Boolean(process.env.OPENAI_API_KEY) }, sessionId);
     if (req.method === "GET" && url.pathname === "/session/log") return json(res, 200, { calls: log.entries() }, sessionId);
     if (req.method === "POST" && url.pathname === "/resolve") {
@@ -81,6 +82,9 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     return json(res, 500, { error: error.message, calls: log.entries() }, sessionId);
   }
-});
+}
 
-server.listen(port, () => console.log(`Eatora backend listening on ${port}`));
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const server = http.createServer(handler);
+  server.listen(port, () => console.log(`Eatora backend listening on ${port}`));
+}
