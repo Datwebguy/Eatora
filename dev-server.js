@@ -8,6 +8,7 @@ import { applyConstraints } from "./lib/constraints.js";
 import { randomUUID } from "node:crypto";
 import { OpenAIClient } from "./lib/openai.js";
 import { constraintQueries, entitiesFrom, idOf, nameOf, rankPlaces, validatePlanInput } from "./lib/planner.js";
+import { sealReceipt } from "./lib/receipt.js";
 
 const port = Number(process.env.PORT || 3000);
 const sessions = new Map();
@@ -27,7 +28,7 @@ async function body(req) {
 
 export async function handler(req, res) {
   const sessionId = req.headers["x-session-id"] || randomUUID();
-  const session = sessions.get(sessionId) || { log: new SessionLog(), entities: new Set(), tags: new Set() };
+  const session = sessions.get(sessionId) || { log: new SessionLog(), entities: new Set(), tags: new Set(), investigations: 0 };
   sessions.set(sessionId, session);
   const { log } = session;
   const qloo = new QlooClient({ apiKey: process.env.QLOO_API_KEY, baseUrl: process.env.QLOO_BASE_URL, log });
@@ -49,7 +50,9 @@ export async function handler(req, res) {
       return json(res, 200, { resolved, calls: log.entries() }, sessionId);
     }
     if (req.method === "POST" && url.pathname === "/plan") {
+      if (session.investigations >= 3) return json(res, 429, { error: "This session has reached its planning limit. Start a new session to investigate again." }, sessionId);
       const input = validatePlanInput(await body(req));
+      session.investigations += 1;
       const resolved = [];
       for (const favorite of input.favorites) {
         const matches = entitiesFrom(await qloo.search(favorite));
@@ -68,7 +71,8 @@ export async function handler(req, res) {
       const places = entitiesFrom(payload);
       const filtered = applyConstraints(places, input.constraints).filter((item) => item.eligible);
       const ranked = rankPlaces(filtered.map((item) => item.place), [...signals, ...tagSignals], filtered);
-      return json(res, 200, { status: "ready", input, resolved: signals, places: ranked.slice(0, 5).map(({ place, evidence, constraintResult }) => ({ ...place, name: nameOf(place), evidence, constraints: constraintResult?.passed || [] })), empty: places.length === 0, calls: log.entries() }, sessionId);
+      const result = { status: "ready", input, resolved: signals, places: ranked.slice(0, 5).map(({ place, evidence, constraintResult }) => ({ ...place, name: nameOf(place), evidence, constraints: constraintResult?.passed || [] })), empty: places.length === 0, calls: log.entries() };
+      return json(res, 200, { ...result, receipt: sealReceipt({ input, resolved: signals, placeIds: result.places.map((place) => idOf(place)), qlooCalls: log.entries() }) }, sessionId);
     }
     if (req.method === "POST" && url.pathname === "/tags") {
       const input = await body(req);
@@ -82,7 +86,13 @@ export async function handler(req, res) {
       if (!Array.isArray(input.entityIds) || input.entityIds.length < 1 || !input.location) return json(res, 400, { error: "entityIds and location are required" }, sessionId);
       if (input.entityIds.some((id) => !session.entities.has(id))) return json(res, 400, { error: "Every entity ID must come from a Qloo search in this session" }, sessionId);
       if (input.tagIds?.some((id) => !session.tags.has(id))) return json(res, 400, { error: "Every tag ID must come from a Qloo tag search in this session" }, sessionId);
-      const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: input.tagIds, take: input.take });
+      const resolvedTagIds = [];
+      for (const keyword of constraintQueries(input.constraints || [])) {
+        const matches = entitiesFrom(await qloo.tags(keyword));
+        for (const match of matches.slice(0, 1)) if (idOf(match)) { session.tags.add(idOf(match)); resolvedTagIds.push(idOf(match)); }
+      }
+      const tagIds = [...new Set([...(input.tagIds || []), ...resolvedTagIds])];
+      const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: tagIds, take: input.take });
       const places = entitiesFrom(payload);
       const filtered = applyConstraints(places, input.constraints).filter((item) => item.eligible);
       return json(res, 200, { places: filtered.slice(0, 5).map(({ place, passed }) => ({ ...place, evidence: passed, constraints: passed })), calls: log.entries(), empty: places.length === 0 }, sessionId);
