@@ -2,6 +2,7 @@
   "name": "eatora",
   "version": "0.1.0",
   "private": true,
+  "main": "dev-server.js",
   "description": "Qloo-grounded dining recommendations for seniors and caregivers",
   "type": "module",
   "scripts": {
