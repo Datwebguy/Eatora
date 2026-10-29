@@ -4,7 +4,7 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { QlooClient } from "./lib/qloo.js";
 import { SessionLog } from "./lib/session-log.js";
-import { applyConstraints } from "./lib/constraints.js";
+import { applyConstraints, resolveConstraints } from "./lib/constraints.js";
 import { randomUUID } from "node:crypto";
 import { OpenAIClient } from "./lib/openai.js";
 import { constraintQueries, entitiesFrom, evidenceFor, idOf, nameOf, rankPlaces, validatePlanInput } from "./lib/planner.js";
@@ -47,32 +47,8 @@ export async function handler(req, res) {
         for (const match of matches) if (idOf(match)) { session.entities.add(idOf(match)); session.entityRecords.set(idOf(match), match); }
         resolved.push({ query: favorite, choices: matches });
       }
-      return json(res, 200, { resolved, calls: log.entries() }, sessionId);
-    }
-    if (req.method === "POST" && url.pathname === "/plan") {
-      if (session.investigations >= 3) return json(res, 429, { error: "This session has reached its planning limit. Start a new session to investigate again." }, sessionId);
-      const input = validatePlanInput(await body(req));
-      session.investigations += 1;
-      const resolved = [];
-      for (const favorite of input.favorites) {
-        const matches = entitiesFrom(await qloo.search(favorite));
-        for (const match of matches) if (idOf(match)) { session.entities.add(idOf(match)); session.entityRecords.set(idOf(match), match); }
-        resolved.push({ query: favorite, choices: matches });
-      }
-      const ambiguous = resolved.filter((item) => item.choices.length !== 1);
-      if (ambiguous.length) return json(res, 200, { status: "needs_selection", resolved: ambiguous.map((item) => ({ query: item.query, choices: item.choices.map((choice) => ({ id: idOf(choice), name: nameOf(choice), entity: choice })) })), calls: log.entries() }, sessionId);
-      const signals = resolved.map((item) => item.choices[0]).map((entity) => ({ id: idOf(entity), label: nameOf(entity) }));
-      const tagSignals = [];
-      for (const keyword of constraintQueries(input.constraints)) {
-        const matches = entitiesFrom(await qloo.tags(keyword));
-        for (const tag of matches.slice(0, 1)) if (idOf(tag)) { session.tags.add(idOf(tag)); session.tagRecords.set(idOf(tag), tag); tagSignals.push({ id: idOf(tag), label: nameOf(tag) }); }
-      }
-      const payload = await qloo.insights({ entities: signals.map((signal) => signal.id), location: input.location, tags: tagSignals.map((signal) => signal.id), take: 10 });
-      const places = entitiesFrom(payload);
-      const filtered = applyConstraints(places, input.constraints).filter((item) => item.eligible);
-      const ranked = rankPlaces(filtered.map((item) => item.place), [...signals, ...tagSignals], filtered);
-      const result = { status: "ready", input, resolved: signals, places: ranked.slice(0, 5).map(({ place, evidence, constraintResult }) => ({ ...place, name: nameOf(place), evidence, constraints: constraintResult?.passed || [] })), empty: places.length === 0, calls: log.entries() };
-      return json(res, 200, { ...result, receipt: sealReceipt({ input, resolved: signals, placeIds: result.places.map((place) => idOf(place)), qlooCalls: log.entries() }) }, sessionId);
+      session.resolved = resolved;
+      return json(res, 200, { status: resolved.some(r => r.choices.length !== 1) ? "needs_selection" : "ready", resolved, calls: log.entries() }, sessionId);
     }
     if (req.method === "POST" && url.pathname === "/tags") {
       const input = await body(req);
@@ -84,24 +60,27 @@ export async function handler(req, res) {
     if (req.method === "POST" && url.pathname === "/recommend") {
       const input = await body(req);
       if (!Array.isArray(input.entityIds) || input.entityIds.length < 1 || !input.location) return json(res, 400, { error: "entityIds and location are required" }, sessionId);
-      if (input.entityIds.some((id) => !session.entities.has(id))) return json(res, 400, { error: "Every entity ID must come from a Qloo search in this session" }, sessionId);
-      if (input.tagIds?.some((id) => !session.tags.has(id))) return json(res, 400, { error: "Every tag ID must come from a Qloo tag search in this session" }, sessionId);
-      const resolvedTagIds = [];
-      for (const keyword of constraintQueries(input.constraints || [])) {
-        const matches = entitiesFrom(await qloo.tags(keyword));
-        for (const match of matches.slice(0, 1)) if (idOf(match)) { session.tags.add(idOf(match)); session.tagRecords.set(idOf(match), match); resolvedTagIds.push(idOf(match)); }
+      const validated = validatePlanInput(input);
+      if (input.entityIds.length !== validated.favorites.length) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
+      const selected = [];
+      for (let i = 0; i < validated.favorites.length; i++) {
+        const matches = entitiesFrom(await qloo.search(validated.favorites[i]));
+        const match = matches.find(item => idOf(item) === input.entityIds[i]);
+        if (!match) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
+        selected.push(match);
       }
-      const tagIds = [...new Set([...(input.tagIds || []), ...resolvedTagIds])];
-      const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: tagIds, take: input.take });
+      const rules = await resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || ''));
+      const payload = await qloo.insights({ entities: input.entityIds, location: input.location, take: 20 });
       const places = entitiesFrom(payload);
-      const filtered = applyConstraints(places, input.constraints).filter((item) => item.eligible);
-      const signals = [...session.entityRecords.values(), ...session.tagRecords.values()].map((signal) => ({ id: idOf(signal), label: nameOf(signal) }));
-      return json(res, 200, { places: filtered.slice(0, 5).map(({ place, passed }) => ({ ...place, evidence: evidenceFor(place, signals), constraints: passed })), calls: log.entries(), empty: places.length === 0 }, sessionId);
+      const filtered = applyConstraints(places, rules).filter((item) => item.eligible);
+      const signals = selected.map((signal) => ({ id: idOf(signal), label: nameOf(signal) }));
+      return json(res, 200, { places: filtered.slice(0, Math.min(Number(input.take) || 5, 5)).map(({ place, passed }) => ({ ...place, evidence: evidenceFor(place, signals), constraints: passed })), calls: log.entries(), empty: places.length === 0, few: filtered.length < 3 }, sessionId);
     }
     if (req.method === "POST" && url.pathname === "/compare") {
       const input = await body(req);
-      const pureLlmPlan = await openai.plan(input);
-      return json(res, 200, { inputs: input, qlooPlan: input.qlooPlan ?? null, pureLlmPlan }, sessionId);
+      const { favorites, location, constraints, medicationNotes } = input;
+      const pureLlmPlan = await openai.plan({ favorites, location, constraints: [...(constraints || []), ...(medicationNotes ? [medicationNotes] : [])] });
+      return json(res, 200, { pureLlmPlan }, sessionId);
     }
     if (req.method === "GET") {
       const requested = url.pathname === "/" ? "/index.html" : (url.pathname === "/app" ? "/app.html" : url.pathname);

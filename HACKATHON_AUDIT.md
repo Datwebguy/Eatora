@@ -31,3 +31,11 @@ The four equally weighted criteria are technological implementation, design, pot
 - Verify every visible place, tag, affinity, and evidence chip against the current session receipt.
 - Add the rotated OpenAI key through Vercel environment variables and verify the comparison path.
 - Complete a public mobile and desktop smoke test before the Devpost submission.
+
+## Verification update
+
+- Automated local tests exercise tag-ID matching, stated food exclusions, request construction, input validation, and receipts. These use synthetic test data; they do not verify Qloo's live response shapes.
+- Constraint terms are sent to the tags endpoint. If it returns no tags, an exact match against a place's returned tag names is used as a fallback. Missing information is treated as unknown, not proof of suitability. This conservative rule may produce no results, particularly for ingredient exclusions.
+- The comparison endpoint passes only favorites, location, constraints and the user's food note to the model client.
+- The Qloo key was not available in the local runtime during this update; the two live persona checks remain outstanding.
+- The recommendation request re-runs each favorite search and checks the chosen ID against the returned candidates, so validation does not depend on shared function memory. A local HTTP integration test verifies ambiguity, selection, empty results, and rejection of an invented ID using a simulated provider. Live verification remains outstanding.
