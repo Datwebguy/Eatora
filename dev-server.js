@@ -84,6 +84,8 @@ export async function handler(req, res) {
   }
 }
 
+export default handler;
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const server = http.createServer(handler);
   server.listen(port, () => console.log(`Eatora backend listening on ${port}`));
