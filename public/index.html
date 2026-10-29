@@ -7,17 +7,19 @@
     <title>Eatora — dining that fits</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/landing.css" />
+    <link rel="stylesheet" href="/landing-refined.css" />
   </head>
   <body>
-    <header class="nav"><a class="logo" href="/"><span>e</span>Eatora</a><nav><a href="#how">How it works</a><a href="#why">Why Eatora</a></nav><a class="nav-link" href="/app">Open app <b>↗</b></a><button class="menu" aria-label="Open menu">☰</button></header>
+    <header class="nav"><a class="logo" href="/"><span>e</span>Eatora</a><nav><a href="#how">How it works</a><a href="#why">Why Eatora</a></nav><div class="nav-actions"><button id="theme" class="theme" aria-label="Switch color mode">◐</button><a class="nav-link" href="/app">Open app <b>↗</b></a></div><button class="menu" aria-label="Open menu">☰</button></header>
     <main>
-      <section class="hero"><div class="hero-copy"><p class="eyebrow">Dining, with care</p><h1>A better place<br />starts with <strong>them.</strong></h1><p class="hero-text">Eatora turns personal taste and practical needs into a short list of real places worth considering.</p><a class="button" href="/app">Find a place <span>↗</span></a></div><div class="flow" aria-label="Eatora process"><div class="flow-orbit orbit-a"></div><div class="flow-orbit orbit-b"></div><div class="flow-line"></div><div class="flow-node node-one"><i>01</i><b>Taste</b><small>what they love</small></div><div class="flow-node node-two"><i>02</i><b>Needs</b><small>what matters today</small></div><div class="flow-node node-three"><i>03</i><b>Places</b><small>what fits nearby</small></div></div></section>
+      <section class="hero"><div class="hero-copy" data-reveal><p class="eyebrow">Dining, with care</p><h1>A better place<br />starts with <strong>them.</strong></h1><p class="hero-text">Taste and practical needs, brought together.</p><a class="button" href="/app">Find a place <span>↗</span></a></div><div class="flow" aria-label="Eatora process" data-reveal><div class="flow-orbit orbit-a"></div><div class="flow-orbit orbit-b"></div><div class="flow-line"></div><div class="flow-node node-one"><i>01</i><b>Taste</b></div><div class="flow-node node-two"><i>02</i><b>Needs</b></div><div class="flow-node node-three"><i>03</i><b>Places</b></div></div></section>
       <section class="signal-bar"><span>Real taste signals</span><span>Practical filters</span><span>Clear reasons</span></section>
-      <section id="how" class="how"><div class="section-heading"><p class="eyebrow">How it works</p><h2>Three inputs.<br /><strong>One useful shortlist.</strong></h2></div><div class="steps"><article><span>01</span><h3>Tell us what they like</h3><p>Restaurants, dishes, music, films, or places.</p></article><article><span>02</span><h3>Add what they need</h3><p>Texture, sodium, heat, or simple exclusions.</p></article><article><span>03</span><h3>Choose with confidence</h3><p>See real places and the reason each one appears.</p></article></div></section>
-      <section id="why" class="why"><p class="eyebrow">Built for real decisions</p><h2>Less searching.<br /><strong>More certainty.</strong></h2><p>Every recommendation is grounded in a live taste graph and filtered in code. No invented restaurants. No hidden claims.</p><a class="inline-link" href="/app">Start planning <span>↗</span></a></section>
+      <section id="how" class="how"><div class="section-heading" data-reveal><p class="eyebrow">How it works</p><h2>Three steps.<br /><strong>Less guesswork.</strong></h2></div><div class="steps"><article data-reveal><span>01</span><h3>What they like</h3></article><article data-reveal><span>02</span><h3>What they need</h3></article><article data-reveal><span>03</span><h3>What fits</h3></article></div></section>
+      <section id="why" class="why" data-reveal><p class="eyebrow">Built for real decisions</p><h2>Less searching.<br /><strong>More certainty.</strong></h2><a class="inline-link" href="/app">Start planning <span>↗</span></a></section>
     </main>
     <footer><span>© Eatora</span><span>Thoughtful places for everyday care.</span></footer>
+    <script src="/landing.js"></script>
   </body>
 </html>
