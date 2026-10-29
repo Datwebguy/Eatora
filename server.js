@@ -28,8 +28,9 @@ function entitiesFrom(payload) { return payload?.results?.entities ?? payload?.e
 
 const server = http.createServer(async (req, res) => {
   const sessionId = req.headers["x-session-id"] || randomUUID();
-  const log = sessions.get(sessionId) || new SessionLog();
-  sessions.set(sessionId, log);
+  const session = sessions.get(sessionId) || { log: new SessionLog(), entities: new Set(), tags: new Set() };
+  sessions.set(sessionId, session);
+  const { log } = session;
   const qloo = new QlooClient({ apiKey: process.env.QLOO_API_KEY, baseUrl: process.env.QLOO_BASE_URL, log });
   const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL });
   try {
@@ -42,13 +43,23 @@ const server = http.createServer(async (req, res) => {
       const resolved = [];
       for (const favorite of input.favorites) {
         const matches = entitiesFrom(await qloo.search(favorite, input.types));
+        for (const match of matches) if (match.entity_id || match.id) session.entities.add(match.entity_id || match.id);
         resolved.push({ query: favorite, choices: matches });
       }
       return json(res, 200, { resolved, calls: log.entries() }, sessionId);
     }
+    if (req.method === "POST" && url.pathname === "/tags") {
+      const input = await body(req);
+      if (!input.keyword) return json(res, 400, { error: "keyword is required" }, sessionId);
+      const matches = entitiesFrom(await qloo.tags(input.keyword));
+      for (const match of matches) if (match.id || match.entity_id) session.tags.add(match.id || match.entity_id);
+      return json(res, 200, { tags: matches, calls: log.entries() }, sessionId);
+    }
     if (req.method === "POST" && url.pathname === "/recommend") {
       const input = await body(req);
       if (!Array.isArray(input.entityIds) || input.entityIds.length < 1 || !input.location) return json(res, 400, { error: "entityIds and location are required" }, sessionId);
+      if (input.entityIds.some((id) => !session.entities.has(id))) return json(res, 400, { error: "Every entity ID must come from a Qloo search in this session" }, sessionId);
+      if (input.tagIds?.some((id) => !session.tags.has(id))) return json(res, 400, { error: "Every tag ID must come from a Qloo tag search in this session" }, sessionId);
       const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: input.tagIds, take: input.take });
       const places = entitiesFrom(payload);
       const filtered = applyConstraints(places, input.constraints).filter((item) => item.eligible);
