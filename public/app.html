@@ -21,8 +21,10 @@
       <section class="app-intro"><div class="intro-kicker"><p class="eyebrow">A gentler way to decide</p><span class="live-pill"><i></i>Real places, nearby</span></div><h1>Find a place that fits.</h1><p>Start with what they love. Add what matters today.</p></section>
       <section class="workspace">
         <form id="finder" class="panel form-panel">
+          <div class="form-progress" aria-label="Planning steps"><span class="active"><b>01</b><em>Taste</em></span><i></i><span><b>02</b><em>Needs</em></span><i></i><span><b>03</b><em>Places</em></span></div>
           <div class="step"><div><h2 id="favorites-heading">What do they enjoy?</h2><p>Write 3–5 favorite foods, places, songs, or films. Put each on a new line.</p></div></div>
           <textarea id="favorites" rows="5" required aria-labelledby="favorites-heading" placeholder="For example: chicken soup"></textarea>
+          <div class="input-hint"><span>Try a mix</span><b>food</b><b>music</b><b>places</b></div>
           <div class="field-grid"><div><label for="location">Location</label><input id="location" required placeholder="Brooklyn, NY" /></div><div><label for="count">Results</label><select id="count"><option value="3">3 places</option><option value="5" selected>5 places</option></select></div></div>
           <fieldset><legend>Anything that matters today? <span>Choose 2–3</span></legend><div class="checks"><label class="check"><input type="checkbox" value="Soft texture / easy-to-chew" /><span>Soft texture</span></label><label class="check"><input type="checkbox" value="Low-sodium" /><span>Low sodium</span></label><label class="check"><input type="checkbox" value="Low-heat delivery" /><span>Low heat</span></label><label class="check"><input type="checkbox" value="Avoid grapefruit" /><span>Avoid grapefruit</span></label><label class="check"><input type="checkbox" value="Limit high-potassium" /><span>Limit potassium</span></label></div></fieldset>
           <label for="medication-notes">Foods to avoid or limit <span>optional</span></label><input id="medication-notes" placeholder="For example, no shellfish" />
