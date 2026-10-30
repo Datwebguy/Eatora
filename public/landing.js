@@ -11,8 +11,15 @@ document.querySelectorAll("[data-reveal]").forEach((element) => observer.observe
 const menu = document.querySelector("#menu");
 const mobileMenu = document.querySelector("#mobile-menu");
 menu?.addEventListener("click", () => {
-  const open = mobileMenu.classList.toggle("open");
+  const open = mobileMenu.hidden;
+  mobileMenu.hidden = !open;
+  mobileMenu.classList.toggle("open", open);
   menu.setAttribute("aria-expanded", String(open));
-  mobileMenu.setAttribute("aria-hidden", String(!open));
+  menu.setAttribute("aria-label", open ? "Close menu" : "Open menu");
 });
-mobileMenu?.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => mobileMenu.classList.remove("open")));
+mobileMenu?.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => {
+  mobileMenu.hidden = true;
+  mobileMenu.classList.remove("open");
+  menu.setAttribute("aria-expanded", "false");
+  menu.setAttribute("aria-label", "Open menu");
+}));
