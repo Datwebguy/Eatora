@@ -60,17 +60,16 @@ export async function handler(req, res) {
       if (!Array.isArray(input.entityIds) || input.entityIds.length < 1 || !input.location) return json(res, 400, { error: "entityIds and location are required" }, sessionId);
       const validated = validatePlanInput(input);
       if (input.entityIds.length !== validated.favorites.length) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
-      const selected = [];
-      for (let i = 0; i < validated.favorites.length; i++) {
-        const matches = entitiesFrom(await qloo.search(validated.favorites[i]));
-        const match = matches.find(item => idOf(item) === input.entityIds[i]);
-        if (!match) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
-        selected.push(match);
-      }
-      const diningTags = entitiesFrom(await qloo.tags('restaurant'));
+      const searchResults = await Promise.all(validated.favorites.map(favorite => qloo.search(favorite)));
+      const selected = searchResults.map((payload, i) => entitiesFrom(payload).find(item => idOf(item) === input.entityIds[i]));
+      if (selected.some(item => !item)) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
+      const [diningResponse, rules] = await Promise.all([
+        qloo.tags('restaurant'),
+        resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || ''))
+      ]);
+      const diningTags = entitiesFrom(diningResponse);
       const diningTag = diningTags.find(tag => tag.name?.toLowerCase() === 'restaurant' && tag.type === 'urn:tag:category:place' && idOf(tag));
       if (!diningTag) return json(res, 200, { places: [], empty: true, few: true, calls: log.entries() }, sessionId);
-      const rules = await resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || ''));
       const diningId = idOf(diningTag);
       const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: [diningId], take: 20 });
       const places = entitiesFrom(payload).filter(place => Array.isArray(place.tags) && place.tags.some(tag => idOf(tag) === diningId));
