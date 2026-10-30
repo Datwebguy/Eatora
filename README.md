@@ -37,7 +37,9 @@ The shortlist identifies needs that require confirmation. A place's category or 
 - **Insights** returns places using the selected interests and location. Eatora checks the returned venue category and locality before building the shortlist.
 - **Evidence** is drawn from the explainability data returned for each place when available. When a detailed reason is unavailable, Eatora says so.
 
-The separate OpenAI comparison receives only the original favorites, location, and needs. It does not receive Qloo results and is labelled as an unchecked general idea.
+When a full first page contains fewer than three local dining leads, Eatora asks OpenAI to choose whether to search one additional page. The model receives counts, while the backend controls the allowed action and checks every returned place. If that decision is unavailable, the backend performs the bounded follow-up itself.
+
+OpenAI also produces a separate comparison using only the original favorites, location, and needs. That comparison does not receive Qloo results and is labelled as an unchecked general idea.
 
 ## Run locally
 
