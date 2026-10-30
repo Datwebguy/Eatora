@@ -42,6 +42,16 @@ $("#cards").addEventListener('click', event => {
   else { card.querySelector('.choice-status').textContent = 'You marked this place as checked.'; action.disabled = true; }
 });
 function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[char])); }
+function formatPlan(value) {
+  const safe = escapeHtml(String(value || '').trim());
+  return safe
+    .replace(/^#{1,4}\s*(.+)$/gm, '<h4>$1</h4>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^\s*[-*]\s+/gm, '<span class="plan-bullet">• </span>')
+    .replace(/^\s*(\d+)\.\s+/gm, '<span class="plan-number">$1. </span>')
+    .replace(/\n{2,}/g, '<div class="plan-gap"></div>')
+    .replace(/\n/g, '<br>');
+}
 async function recommendFromResolved() {
   const entityIds = state.resolved.map((item) => item.choices[0]?.entity_id || item.choices[0]?.id).filter(Boolean);
   if (entityIds.length !== state.resolved.length) return;
@@ -52,7 +62,7 @@ async function recommendFromResolved() {
   $("#qloo-summary").textContent = recommendation.places.length === 0 ? "No places were found for this search." : "These are taste-based leads. Check the address, restaurant details and each need before choosing.";
   results.scrollIntoView({ behavior: "smooth" });
   showStatus("Preparing a comparison…");
-  try { const comparison = await api("/compare", state.input); $("#llm-summary").textContent = comparison.pureLlmPlan?.plan || "A general suggestion is unavailable right now."; }
+  try { const comparison = await api("/compare", state.input); $("#llm-summary").innerHTML = formatPlan(comparison.pureLlmPlan?.plan || "A general suggestion is unavailable right now."); }
   catch { $("#llm-summary").textContent = "A general suggestion is unavailable right now."; }
   hideStatus();
 }
