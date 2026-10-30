@@ -58,6 +58,9 @@ async function recommendFromResolved() {
   showStatus("Checking places against your needs…");
   const recommendation = await api("/recommend", { ...state.input, entityIds, take: Number($("#count").value) });
   results.classList.remove("hidden"); $("#ambiguity").classList.add("hidden"); cards(recommendation.places);
+  const update = $("#search-update");
+  update.textContent = recommendation.expandedSearch === 'completed' ? 'We looked a little further to find more places nearby.' : recommendation.expandedSearch === 'unavailable' ? 'We couldn’t look further just now. Here are the places we found.' : '';
+  update.classList.toggle('hidden', !update.textContent);
   $(".comparison").classList.remove("hidden");
   $("#qloo-summary").textContent = recommendation.places.length === 0 ? "No places were found for this search." : "These are taste-based leads. Check the address, restaurant details and each need before choosing.";
   results.scrollIntoView({ behavior: "smooth" });
@@ -67,7 +70,7 @@ async function recommendFromResolved() {
   hideStatus();
 }
 $("#finder").addEventListener("submit", async (event) => {
-  event.preventDefault(); hideStatus(); results.classList.add("hidden"); $(".comparison").classList.add("hidden"); showStatus("Looking for your favorites…");
+  event.preventDefault(); hideStatus(); results.classList.add("hidden"); $("#search-update").classList.add("hidden"); $(".comparison").classList.add("hidden"); showStatus("Looking for your favorites…");
   const favorites = $("#favorites").value.split("\n").map((value) => value.trim()).filter(Boolean);
   const constraints = [...document.querySelectorAll(".check input:checked")].map((input) => input.value);
   if (favorites.length < 3 || favorites.length > 5) { showStatus("Please add 3–5 things they enjoy."); return; }

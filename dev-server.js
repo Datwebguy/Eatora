@@ -98,23 +98,25 @@ export async function handler(req, res) {
       const candidates = entitiesFrom(payload);
       const matches = place => isDiningPlace(place, diningId, excludedGenreIds) && matchesRequestedLocality(place, validated.location);
       let places = candidates.filter(matches);
+      let expandedSearch = 'not_needed';
       // Investigate one further page only when the first full page yields few local dining leads.
       if (places.length < 3 && candidates.length === 50) {
         try {
           const next = await qloo.insights({ entities: input.entityIds, location: input.location, tags: [diningId], take: 50, offset: 50 });
+          expandedSearch = 'completed';
           const seen = new Set(places.map(idOf).filter(Boolean));
           for (const place of entitiesFrom(next)) {
             const id = idOf(place);
             if (id && !seen.has(id) && matches(place)) { places.push(place); seen.add(id); }
           }
-        } catch { /* Keep verified first-page results if the additional search fails. */ }
+        } catch { expandedSearch = 'unavailable'; }
       }
       const assessed = applyConstraints(places, rules);
       const filtered = assessed.filter((item) => item.eligible).sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));
       const ranked = [...assessed].sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));
       const needsCheck = filtered.length === 0 && ranked.length > 0;
       const signals = selected.map((signal) => ({ id: idOf(signal), label: nameOf(signal) }));
-      return json(res, 200, { places: (needsCheck ? ranked : filtered).slice(0, Math.min(Math.max(Number(input.take) || 5, 1), 5)).map(({ place, passed, excluded, unknown, eligible }) => ({ ...place, evidence: evidenceFor(place, signals), checks: { passed, failed: excluded, unknown }, needsCheck: !eligible })), calls: log.entries(), empty: places.length === 0, few: (needsCheck ? ranked : filtered).length < 3, needsCheck, insufficientDetails: assessed.filter(item => item.unknown.length > 0).length }, sessionId);
+      return json(res, 200, { places: (needsCheck ? ranked : filtered).slice(0, Math.min(Math.max(Number(input.take) || 5, 1), 5)).map(({ place, passed, excluded, unknown, eligible }) => ({ ...place, evidence: evidenceFor(place, signals), checks: { passed, failed: excluded, unknown }, needsCheck: !eligible })), calls: log.entries(), empty: places.length === 0, few: (needsCheck ? ranked : filtered).length < 3, needsCheck, expandedSearch, insufficientDetails: assessed.filter(item => item.unknown.length > 0).length }, sessionId);
     }
     if (req.method === "POST" && url.pathname === "/compare") {
       const input = await body(req);
