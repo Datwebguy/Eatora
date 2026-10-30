@@ -82,7 +82,7 @@ export async function handler(req, res) {
       const searchResults = await Promise.all(validated.favorites.map(favorite => qloo.search(favorite)));
       const selected = searchResults.map((payload, i) => entitiesFrom(payload).find(item => idOf(item) === input.entityIds[i]));
       if (selected.some(item => !item)) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
-      const excludedVenueQueries = ['bar', 'distillery', 'brewery', 'beer garden', 'tea house', 'night club'];
+      const excludedVenueQueries = ['bar', 'cocktail bar', 'wine bar', 'pub', 'distillery', 'brewery', 'beer garden', 'tea house', 'night club'];
       const [diningResponse, rules] = await Promise.all([
         qloo.tags('restaurant'),
         resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || ''))
