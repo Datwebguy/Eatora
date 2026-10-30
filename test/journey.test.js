@@ -12,7 +12,7 @@ test('ambiguity must be resolved before insights, and the chosen IDs are checked
       const q = url.searchParams.get('query');
       res.end(JSON.stringify({ results: q === 'Joe' ? [{ id: 'joe1', name: 'Joe' }, { id: 'joe2', name: 'Joe Two' }] : [{ id: q, name: q }] }));
     } else if (url.pathname === '/v2/tags') res.end(JSON.stringify({ results: { tags: [{ tag_id: 'tag:' + url.searchParams.get('filter.query'), name: url.searchParams.get('filter.query') }] } }));
-    else { insights++; res.end(JSON.stringify({ results: { entities: [] } })); }
+    else { insights++; res.end(JSON.stringify({ results: { entities: [{ entity_id: 'place-1', name: 'Example', tags: [], query: { affinity: 0.9 } }] } })); }
   });
   await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
   const probe = http.createServer(); await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve)); const port = probe.address().port; await new Promise(resolve => probe.close(resolve));
@@ -26,7 +26,9 @@ test('ambiguity must be resolved before insights, and the chosen IDs are checked
     assert.equal(resolution.status, 'needs_selection'); assert.equal(insights, 0);
     const input = { favorites, location: 'Brooklyn', constraints: ['Low-sodium', 'Low-heat delivery'], entityIds: ['joe2', 'music', 'park'] };
     const result = await (await post('/recommend', input)).json();
-    assert.equal(insights, 1); assert.equal(result.empty, true); assert.deepEqual(result.places, []);
+    assert.equal(insights, 1); assert.equal(result.needsCheck, true); assert.equal(result.places.length, 1);
+    assert.deepEqual(result.places[0].checks.unknown, ['Low-sodium', 'Low-heat delivery']);
+    assert.deepEqual(result.places[0].checks.passed, []);
     const rejected = await post('/recommend', { ...input, entityIds: ['invented', 'music', 'park'] });
     assert.equal(rejected.status, 400); assert.equal(insights, 1);
   } finally { child.kill(); await new Promise(resolve => upstream.close(resolve)); }

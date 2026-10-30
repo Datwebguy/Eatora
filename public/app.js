@@ -10,7 +10,22 @@ async function api(path, payload) {
   const response = await fetch(`${API_PREFIX}${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
   const data = await response.json(); if (!response.ok) throw new Error("We couldn’t complete your search. Please try again."); return data;
 }
-function cards(places) { $("#cards").innerHTML = places.length ? places.map((place, i) => `<article class="place-card"><span class="place-index">0${i + 1}</span><h3>${escapeHtml(place.name || "Unnamed place")}</h3><p class="place-meta">Check details with the restaurant</p><div class="chips">${(place.evidence || []).map((chip) => `<span class="chip">${escapeHtml(typeof chip === "object" ? chip.label : chip)}</span>`).join("")}</div></article>`).join("") : `<div class="notice">We couldn’t find enough information to match these needs. Try changing your search.</div>`; }
+function cards(places) {
+  const list = (items, label) => items.map(item => `<li><strong>${label}</strong> ${escapeHtml(item)}</li>`).join('');
+  $("#cards").innerHTML = places.length ? places.map((place, i) => {
+    const checks = place.checks || { passed: [], unknown: [], failed: [] };
+    const evidence = (place.evidence || []).map(chip => `<span class="chip">${escapeHtml(chip.label)}</span>`).join('');
+    const address = place.properties?.address;
+    return `<article class="place-card"><span class="place-index">${place.needsCheck ? 'Needs your check' : 'Details available'}</span><h3>${escapeHtml(place.name || 'Unnamed place')}</h3>${address ? `<p class="place-meta">${escapeHtml(address)}</p>` : ''}<p class="place-meta">Why this fits</p><div class="chips">${evidence || 'Taste match only — no detailed reason returned.'}</div><ul class="needs-list">${list(checks.passed, 'Supported:')}${list(checks.unknown, 'Unknown — confirm on the menu:')}${list(checks.failed, 'Does not match:')}</ul><p class="place-meta">Please check the menu and contact the restaurant about any needs you cannot confirm.</p><div class="place-actions"><button type="button" data-action="confirm">I checked the menu — this is fine</button><button type="button" data-action="skip">Skip</button></div><p class="choice-status" aria-live="polite"></p></article>`;
+  }).join('') : `<div class="notice">We couldn’t find places for this search. Try another location or favorites.</div>`;
+}
+$("#cards").addEventListener('click', event => {
+  const action = event.target.closest('[data-action]');
+  if (!action) return;
+  const card = action.closest('.place-card');
+  if (action.dataset.action === 'skip') { card.remove(); if (!$('#cards').children.length) $('#cards').innerHTML = '<div class="notice">You skipped these places. Try another search when you’re ready.</div>'; }
+  else { card.querySelector('.choice-status').textContent = 'You marked this place as checked.'; action.disabled = true; }
+});
 function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[char])); }
 async function recommendFromResolved() {
   const entityIds = state.resolved.map((item) => item.choices[0]?.entity_id || item.choices[0]?.id).filter(Boolean);
@@ -19,7 +34,7 @@ async function recommendFromResolved() {
   const recommendation = await api("/recommend", { ...state.input, entityIds, take: Number($("#count").value) });
   results.classList.remove("hidden"); $("#ambiguity").classList.add("hidden"); cards(recommendation.places);
   $(".comparison").classList.remove("hidden");
-  $("#qloo-summary").textContent = recommendation.places.length === 0 ? "No places could be confirmed with the available information." : recommendation.few ? "Only a few places had enough information. Please confirm details directly." : "Please confirm the details directly with the restaurant.";
+  $("#qloo-summary").textContent = recommendation.places.length === 0 ? "No places were found for this search." : recommendation.needsCheck ? "These places match the person's tastes. Check each need before choosing." : "Please confirm the details directly with the restaurant.";
   results.scrollIntoView({ behavior: "smooth" });
   showStatus("Preparing a comparison…");
   try { const comparison = await api("/compare", state.input); $("#llm-summary").textContent = comparison.pureLlmPlan?.plan || "A general suggestion is unavailable right now."; }
