@@ -21,12 +21,22 @@ function json(res, status, body, sessionId) {
 }
 
 async function body(req) {
+  if (!/^application\/json(?:\s*;|\s*$)/i.test(req.headers['content-type'] || '')) throw Object.assign(new Error('Content-Type must be application/json'), { status: 415 });
   let raw = "";
-  for await (const chunk of req) raw += chunk;
-  return raw ? JSON.parse(raw) : {};
+  let bytes = 0;
+  for await (const chunk of req) {
+    bytes += Buffer.byteLength(chunk);
+    if (bytes > 16384) throw Object.assign(new Error('Request is too large'), { status: 413 });
+    raw += chunk;
+  }
+  try { const data = raw ? JSON.parse(raw) : {}; if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error(); return data; }
+  catch { throw Object.assign(new Error('Invalid request'), { status: 400 }); }
 }
 
 export async function handler(req, res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
   const sessionId = req.headers["x-session-id"] || randomUUID();
   const session = { log: new SessionLog(), entities: new Set(), tags: new Set(), entityRecords: new Map(), tagRecords: new Map() };
   const { log } = session;
@@ -35,11 +45,17 @@ export async function handler(req, res) {
   try {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
     if (url.pathname.startsWith("/api/")) url.pathname = url.pathname.slice(4);
+    const allowed = { '/health': 'GET', '/session/log': 'GET', '/resolve': 'POST', '/tags': 'POST', '/recommend': 'POST', '/compare': 'POST' };
+    if (allowed[url.pathname] && req.method !== allowed[url.pathname]) {
+      res.setHeader('Allow', allowed[url.pathname]);
+      return json(res, 405, { error: 'Method not allowed' }, sessionId);
+    }
     if (req.method === "GET" && url.pathname === "/health") return json(res, 200, { ok: true, qlooConfigured: Boolean(process.env.QLOO_API_KEY), openaiConfigured: Boolean(process.env.OPENAI_API_KEY) }, sessionId);
     if (req.method === "GET" && url.pathname === "/session/log") return json(res, 200, { calls: log.entries() }, sessionId);
     if (req.method === "POST" && url.pathname === "/resolve") {
       const input = await body(req);
-      if (!Array.isArray(input.favorites) || input.favorites.length < 1) return json(res, 400, { error: "favorites must be a non-empty array" }, sessionId);
+      if (!Array.isArray(input.favorites) || input.favorites.length < 3 || input.favorites.length > 5 || input.favorites.some(value => typeof value !== 'string' || !value.trim() || value.length > 120)) return json(res, 400, { error: "Provide 3 to 5 favorites" }, sessionId);
+      if (input.types !== undefined) return json(res, 400, { error: "Invalid request" }, sessionId);
       const resolved = [];
       for (const favorite of input.favorites) {
         const matches = entitiesFrom(await qloo.search(favorite, input.types));
@@ -51,7 +67,7 @@ export async function handler(req, res) {
     }
     if (req.method === "POST" && url.pathname === "/tags") {
       const input = await body(req);
-      if (!input.keyword) return json(res, 400, { error: "keyword is required" }, sessionId);
+      if (typeof input.keyword !== 'string' || !input.keyword.trim() || input.keyword.length > 120) return json(res, 400, { error: "keyword is required" }, sessionId);
       const matches = entitiesFrom(await qloo.tags(input.keyword));
       for (const match of matches) if (idOf(match)) { session.tags.add(idOf(match)); session.tagRecords.set(idOf(match), match); }
       return json(res, 200, { tags: matches, calls: log.entries() }, sessionId);
@@ -59,7 +75,8 @@ export async function handler(req, res) {
     if (req.method === "POST" && url.pathname === "/recommend") {
       const input = await body(req);
       if (!Array.isArray(input.entityIds) || input.entityIds.length < 1 || !input.location) return json(res, 400, { error: "entityIds and location are required" }, sessionId);
-      const validated = validatePlanInput(input);
+      let validated;
+      try { validated = validatePlanInput(input); } catch (error) { return json(res, 400, { error: error.message }, sessionId); }
       if (input.entityIds.length !== validated.favorites.length) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
       const searchResults = await Promise.all(validated.favorites.map(favorite => qloo.search(favorite)));
       const selected = searchResults.map((payload, i) => entitiesFrom(payload).find(item => idOf(item) === input.entityIds[i]));
@@ -83,7 +100,10 @@ export async function handler(req, res) {
     }
     if (req.method === "POST" && url.pathname === "/compare") {
       const input = await body(req);
-      const { favorites, location, constraints, medicationNotes } = input;
+      let validated;
+      try { validated = validatePlanInput(input); } catch (error) { return json(res, 400, { error: error.message }, sessionId); }
+      const { favorites, location, constraints } = validated;
+      const medicationNotes = input.medicationNotes;
       const pureLlmPlan = await openai.plan({ favorites, location, constraints: [...(constraints || []), ...(medicationNotes ? [medicationNotes] : [])] });
       return json(res, 200, { pureLlmPlan }, sessionId);
     }
@@ -96,7 +116,7 @@ export async function handler(req, res) {
     }
     return json(res, 404, { error: "Not found" }, sessionId);
   } catch (error) {
-    return json(res, 500, { error: error.message, calls: log.entries() }, sessionId);
+    return json(res, error.status || 502, { error: error.status ? error.message : 'The service is temporarily unavailable.', calls: log.entries() }, sessionId);
   }
 }
 
