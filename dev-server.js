@@ -83,11 +83,12 @@ export async function handler(req, res) {
       const selected = searchResults.map((payload, i) => entitiesFrom(payload).find(item => idOf(item) === input.entityIds[i]));
       if (selected.some(item => !item)) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
       const excludedVenueQueries = ['bar', 'distillery', 'brewery', 'beer garden', 'tea house', 'night club'];
-      const [diningResponse, rules, ...excludedResponses] = await Promise.all([
+      const [diningResponse, rules] = await Promise.all([
         qloo.tags('restaurant'),
-        resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || '')),
-        ...excludedVenueQueries.map(query => qloo.tags(query))
+        resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || ''))
       ]);
+      const excludedResponses = [];
+      for (const query of excludedVenueQueries) excludedResponses.push(await qloo.tags(query));
       const diningTags = entitiesFrom(diningResponse);
       const diningTag = diningTags.find(tag => tag.name?.toLowerCase() === 'restaurant' && tag.type === 'urn:tag:genre:place' && idOf(tag));
       if (!diningTag) return json(res, 200, { places: [], empty: true, few: true, calls: log.entries() }, sessionId);
