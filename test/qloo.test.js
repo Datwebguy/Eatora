@@ -13,7 +13,7 @@ test("Qloo insights sends only the documented place parameters and API header", 
   const parsed = new URL(request.url);
   assert.equal(parsed.searchParams.get("filter.type"), "urn:entity:place");
   assert.equal(parsed.searchParams.get("signal.interests.entities"), "urn:entity:place:1");
-  assert.equal(parsed.searchParams.get("signal.location.query"), "Brooklyn, NY");
+  assert.equal(parsed.searchParams.get("filter.location.query"), "Brooklyn, NY");
   assert.equal(parsed.searchParams.get("filter.tags"), "urn:tag:soft");
   assert.equal(request.options.headers["X-Api-Key"], "secret");
 });

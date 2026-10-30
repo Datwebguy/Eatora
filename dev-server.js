@@ -9,6 +9,7 @@ import { randomUUID } from "node:crypto";
 import { OpenAIClient } from "./lib/openai.js";
 import { constraintQueries, entitiesFrom, evidenceFor, idOf, nameOf, rankPlaces, validatePlanInput } from "./lib/planner.js";
 import { sealReceipt } from "./lib/receipt.js";
+import { isDiningPlace, matchesRequestedLocality } from './lib/places.js';
 
 const port = Number(process.env.PORT || 3000);
 const publicRoot = join(fileURLToPath(new URL(".", import.meta.url)), "public");
@@ -68,11 +69,11 @@ export async function handler(req, res) {
         resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || ''))
       ]);
       const diningTags = entitiesFrom(diningResponse);
-      const diningTag = diningTags.find(tag => tag.name?.toLowerCase() === 'restaurant' && tag.type === 'urn:tag:category:place' && idOf(tag));
+      const diningTag = diningTags.find(tag => tag.name?.toLowerCase() === 'restaurant' && tag.type === 'urn:tag:genre:place' && idOf(tag));
       if (!diningTag) return json(res, 200, { places: [], empty: true, few: true, calls: log.entries() }, sessionId);
       const diningId = idOf(diningTag);
-      const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: [diningId], take: 20 });
-      const places = entitiesFrom(payload).filter(place => Array.isArray(place.tags) && place.tags.some(tag => idOf(tag) === diningId));
+      const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: [diningId], take: 50 });
+      const places = entitiesFrom(payload).filter(place => isDiningPlace(place, diningId) && matchesRequestedLocality(place, validated.location));
       const assessed = applyConstraints(places, rules);
       const filtered = assessed.filter((item) => item.eligible).sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));
       const ranked = [...assessed].sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));

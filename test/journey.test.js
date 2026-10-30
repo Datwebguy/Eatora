@@ -11,8 +11,8 @@ test('ambiguity must be resolved before insights, and the chosen IDs are checked
     if (url.pathname === '/search') {
       const q = url.searchParams.get('query');
       res.end(JSON.stringify({ results: q === 'Joe' ? [{ id: 'joe1', name: 'Joe' }, { id: 'joe2', name: 'Joe Two' }] : [{ id: q, name: q }] }));
-    } else if (url.pathname === '/v2/tags') { const q = url.searchParams.get('filter.query'); res.end(JSON.stringify({ results: { tags: [{ tag_id: 'tag:' + q, name: q === 'restaurant' ? 'Restaurant' : q, type: q === 'restaurant' ? 'urn:tag:category:place' : 'urn:tag:menu_highlight:qloo' }] } })); }
-    else { insights++; res.end(JSON.stringify({ results: { entities: [{ entity_id: 'place-1', name: 'Example', tags: [{ id: 'tag:restaurant' }], query: { affinity: 0.9 } }, { entity_id: 'building', name: 'Building', tags: [], query: { affinity: 1 } }] } })); }
+    } else if (url.pathname === '/v2/tags') { const q = url.searchParams.get('filter.query'); res.end(JSON.stringify({ results: { tags: [{ tag_id: 'tag:' + q, name: q === 'restaurant' ? 'Restaurant' : q, type: q === 'restaurant' ? 'urn:tag:genre:place' : 'urn:tag:menu_highlight:qloo' }] } })); }
+    else { insights++; res.end(JSON.stringify({ results: { entities: [{ entity_id: 'place-1', name: 'Example', properties: { primary_genre: { id: 'tag:restaurant:pizza' }, localities: [{ name: 'Brooklyn' }] }, tags: [{ id: 'tag:restaurant' }], query: { affinity: 0.9 } }, { entity_id: 'building', name: 'Building', tags: [], query: { affinity: 1 } }] } })); }
   });
   await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
   const probe = http.createServer(); await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve)); const port = probe.address().port; await new Promise(resolve => probe.close(resolve));
