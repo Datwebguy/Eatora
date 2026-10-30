@@ -10,5 +10,7 @@ test('uses returned primary genre and locality rather than a broad tag', () => {
   assert.equal(matchesRequestedLocality(brooklyn, 'Brooklyn, NY'), true);
   assert.equal(matchesRequestedLocality(manhattan, 'Brooklyn, NY'), false);
   assert.equal(isDiningPlace(mall, 'genre:restaurant'), false);
+  assert.equal(isDiningPlace({properties:{primary_genre:{id:'genre:restaurant:bar'}}}, 'genre:restaurant', ['genre:restaurant:bar']), false);
+  assert.equal(isDiningPlace(brooklyn, 'genre:restaurant', ['genre:restaurant:bar']), true);
   assert.equal(matchesRequestedLocality({}, 'Brooklyn, NY'), false);
 });

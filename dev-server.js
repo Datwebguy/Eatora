@@ -82,16 +82,19 @@ export async function handler(req, res) {
       const searchResults = await Promise.all(validated.favorites.map(favorite => qloo.search(favorite)));
       const selected = searchResults.map((payload, i) => entitiesFrom(payload).find(item => idOf(item) === input.entityIds[i]));
       if (selected.some(item => !item)) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
-      const [diningResponse, rules] = await Promise.all([
+      const excludedVenueQueries = ['bar', 'distillery', 'brewery', 'beer garden', 'tea house', 'night club'];
+      const [diningResponse, rules, ...excludedResponses] = await Promise.all([
         qloo.tags('restaurant'),
-        resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || ''))
+        resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || '')),
+        ...excludedVenueQueries.map(query => qloo.tags(query))
       ]);
       const diningTags = entitiesFrom(diningResponse);
       const diningTag = diningTags.find(tag => tag.name?.toLowerCase() === 'restaurant' && tag.type === 'urn:tag:genre:place' && idOf(tag));
       if (!diningTag) return json(res, 200, { places: [], empty: true, few: true, calls: log.entries() }, sessionId);
       const diningId = idOf(diningTag);
+      const excludedGenreIds = excludedResponses.flatMap((response, index) => entitiesFrom(response).filter(tag => tag.name?.toLowerCase() === excludedVenueQueries[index] && tag.type === 'urn:tag:genre:place' && idOf(tag)?.startsWith(`${diningId}:`)).map(idOf));
       const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: [diningId], take: 50 });
-      const places = entitiesFrom(payload).filter(place => isDiningPlace(place, diningId) && matchesRequestedLocality(place, validated.location));
+      const places = entitiesFrom(payload).filter(place => isDiningPlace(place, diningId, excludedGenreIds) && matchesRequestedLocality(place, validated.location));
       const assessed = applyConstraints(places, rules);
       const filtered = assessed.filter((item) => item.eligible).sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));
       const ranked = [...assessed].sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));
