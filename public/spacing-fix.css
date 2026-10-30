@@ -6,6 +6,13 @@
 .input-hint{flex-wrap:wrap;gap:8px;margin:8px 0 28px}
 .input-hint span{margin-right:2px}
 .field-grid{gap:20px;margin:26px 0 30px}
+.decision-section{margin-top:30px;padding-top:28px;border-top:1px solid var(--line)}
+.decision-section .section-mark{color:var(--orange);font:700 11px Fraunces,serif;letter-spacing:.08em;margin-bottom:12px}
+.section-copy h2{font-size:22px;margin:0 0 6px;letter-spacing:-.04em}
+.section-copy p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}
+.decision-section .field-grid{margin-bottom:0}
+.decision-section fieldset{margin:24px 0 25px!important;padding-top:0;border-top:0}
+.decision-section legend{font-size:12px;margin-bottom:13px}
 .form-panel fieldset{margin:30px 0 34px}
 .checks{gap:12px}
 .check{padding:11px 14px;line-height:1.35}
@@ -20,6 +27,9 @@
   .step{margin-bottom:24px}
   .input-hint{margin:10px 0 27px;gap:8px}
   .field-grid{gap:22px;margin:27px 0 31px}
+  .decision-section{margin-top:31px;padding-top:27px}
+  .section-copy h2{font-size:22px}
+  .decision-section .field-grid{margin:24px 0 0}
   .form-panel fieldset{margin:31px 0 35px}
   .checks{gap:10px}
   .check{padding:11px 13px}
