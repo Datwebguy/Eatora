@@ -4,6 +4,14 @@ const API_PREFIX = "/api";
 const $ = (selector) => document.querySelector(selector);
 const results = $("#results");
 const status = $("#status");
+$("#try-example")?.addEventListener("click", () => {
+  $("#favorites").value = "chicken soup\nFrank Sinatra\nItalian restaurant\nCentral Park";
+  $("#location").value = "Brooklyn, NY";
+  $("#medication-notes").value = "";
+  document.querySelectorAll(".check input").forEach((input) => { input.checked = ["Soft texture / easy-to-chew", "Low-sodium"].includes(input.value); });
+  $("#finder").scrollIntoView({ behavior: "smooth", block: "center" });
+  $("#favorites").focus();
+});
 
 function showStatus(message) { status.textContent = message; status.classList.remove("hidden"); }
 function hideStatus() { status.classList.add("hidden"); }

@@ -18,7 +18,7 @@
   <body>
     <header class="topbar"><a class="brand" href="/"><span class="brand-mark">e</span><span>Eatora</span></a><nav class="app-nav"><a href="/">Home</a><a href="#results">Results</a></nav><button id="theme" class="theme" aria-label="Switch color mode">◐</button></header>
     <main>
-      <section class="app-intro"><p class="eyebrow">New plan</p><h1>Find a place that fits.</h1><p>Start with what they love. Add what matters today.</p></section>
+      <section class="app-intro"><div class="intro-kicker"><p class="eyebrow">A gentler way to decide</p><span class="live-pill"><i></i>Real places, nearby</span></div><h1>Find a place that fits.</h1><p>Start with what they love. Add what matters today.</p></section>
       <section class="workspace">
         <form id="finder" class="panel form-panel">
           <div class="step"><div><h2 id="favorites-heading">What do they enjoy?</h2><p>Write 3–5 favorite foods, places, songs, or films. Put each on a new line.</p></div></div>
@@ -29,6 +29,10 @@
           <p class="form-note">Please check dietary needs directly with the restaurant.</p>
           <button class="primary" type="submit"><span>Find places</span><span class="arrow">↗</span></button>
         </form>
+        <aside class="plan-aside" aria-label="How choosing works">
+          <div class="aside-card plan-card"><span class="aside-number">01</span><h2>Start with their world.</h2><p>Favorite foods, music, films, and places help us understand what feels familiar.</p><button id="try-example" type="button" class="example-button">Try an example <span>↗</span></button></div>
+          <div class="aside-steps"><div><b>02</b><span>Tell us what matters today</span></div><div><b>03</b><span>Review places with clear reasons</span></div></div>
+        </aside>
       </section>
       <section id="results" class="results hidden"><div class="results-head"><div><p class="eyebrow">Your shortlist</p><h2>Places to consider.</h2></div><button id="new-search" class="text-button">Start over ↗</button></div><div id="ambiguity" class="notice hidden"></div><div id="cards" class="cards"></div><div class="comparison hidden"><div class="comparison-head"><h2>Compare suggestions</h2></div><div class="compare-grid"><article><p class="label">Places that match their taste</p><div id="qloo-summary" class="compare-copy"></div></article><article><p class="label">A general idea (not checked)</p><div id="llm-summary" class="compare-copy muted">Preparing a comparison…</div></article></div></div></section>
       <div id="status" class="status hidden" role="status"></div>
