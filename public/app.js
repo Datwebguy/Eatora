@@ -59,7 +59,7 @@ async function recommendFromResolved() {
   const recommendation = await api("/recommend", { ...state.input, entityIds, take: Number($("#count").value) });
   results.classList.remove("hidden"); $("#ambiguity").classList.add("hidden"); cards(recommendation.places);
   const update = $("#search-update");
-  update.textContent = recommendation.expandedSearch === 'completed' ? 'We looked a little further to find more places nearby.' : recommendation.expandedSearch === 'unavailable' ? 'We couldn’t look further just now. Here are the places we found.' : '';
+  update.textContent = recommendation.expandedSearch === 'completed' ? (recommendation.decisionSource === 'model' ? 'We found only a few places nearby, so our assistant decided to look a little further.' : 'We found only a few places nearby, so we looked a little further.') : recommendation.expandedSearch === 'unavailable' ? 'We couldn’t look further just now. Here are the places we found.' : '';
   update.classList.toggle('hidden', !update.textContent);
   $(".comparison").classList.remove("hidden");
   $("#qloo-summary").textContent = recommendation.places.length === 0 ? "No places were found for this search." : "These are taste-based leads. Check the address, restaurant details and each need before choosing.";

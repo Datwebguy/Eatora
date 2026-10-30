@@ -82,7 +82,7 @@ export async function handler(req, res) {
       const searchResults = await Promise.all(validated.favorites.map(favorite => qloo.search(favorite)));
       const selected = searchResults.map((payload, i) => entitiesFrom(payload).find(item => idOf(item) === input.entityIds[i]));
       if (selected.some(item => !item)) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
-      const excludedVenueQueries = ['bar', 'cocktail bar', 'wine bar', 'pub', 'distillery', 'brewery', 'beer garden', 'tea house', 'night club'];
+      const excludedVenueQueries = ['bar', 'gay bar', 'cocktail bar', 'wine bar', 'pub', 'distillery', 'brewery', 'beer garden', 'tea house', 'night club', 'club'];
       const [diningResponse, rules] = await Promise.all([
         qloo.tags('restaurant'),
         resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || ''))
@@ -93,7 +93,7 @@ export async function handler(req, res) {
       const diningTag = diningTags.find(tag => tag.name?.toLowerCase() === 'restaurant' && tag.type === 'urn:tag:genre:place' && idOf(tag));
       if (!diningTag) return json(res, 200, { places: [], empty: true, few: true, calls: log.entries() }, sessionId);
       const diningId = idOf(diningTag);
-      const excludedGenreIds = excludedResponses.flatMap((response, index) => entitiesFrom(response).filter(tag => tag.name?.toLowerCase() === excludedVenueQueries[index] && tag.type === 'urn:tag:genre:place' && idOf(tag)?.startsWith(`${diningId}:`)).map(idOf));
+      const excludedGenreIds = excludedResponses.flatMap((response, index) => entitiesFrom(response).filter(tag => tag.name?.toLowerCase() === excludedVenueQueries[index] && ['urn:tag:genre:place', 'urn:tag:category:place'].includes(tag.type) && idOf(tag)).map(idOf));
       const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: [diningId], take: 50 });
       const candidates = entitiesFrom(payload);
       const matches = place => isDiningPlace(place, diningId, excludedGenreIds) && matchesRequestedLocality(place, validated.location);
