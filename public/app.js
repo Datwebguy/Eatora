@@ -1,3 +1,4 @@
+import { safeWebLink, phoneLink, questionFor } from './place-details.js';
 const state = { resolved: [], input: null };
 const API_PREFIX = "/api";
 const $ = (selector) => document.querySelector(selector);
@@ -16,7 +17,12 @@ function cards(places) {
     const checks = place.checks || { passed: [], unknown: [], failed: [] };
     const evidence = (place.evidence || []).map(chip => `<span class="chip">${escapeHtml(chip.label)}</span>`).join('');
     const address = place.properties?.address;
-    return `<article class="place-card"><span class="place-index">${place.needsCheck ? 'Needs your check' : 'Details available'}</span><h3>${escapeHtml(place.name || 'Unnamed place')}</h3>${address ? `<p class="place-meta">${escapeHtml(address)}</p>` : ''}<p class="place-meta">Why this fits</p><div class="chips">${evidence || 'Taste match only — no detailed reason returned.'}</div><ul class="needs-list">${list(checks.passed, 'Supported:')}${list(checks.unknown, 'Unknown — confirm on the menu:')}${list(checks.failed, 'Does not match:')}</ul><p class="place-meta">Please check the menu and contact the restaurant about any needs you cannot confirm.</p><div class="place-actions"><button type="button" data-action="confirm">I checked the menu — this is fine</button><button type="button" data-action="skip">Skip</button></div><p class="choice-status" aria-live="polite"></p></article>`;
+    const menu = safeWebLink(place.properties?.menu_url);
+    const website = safeWebLink(place.properties?.website);
+    const phone = phoneLink(place.properties?.phone);
+    const links = [menu && `<a href="${escapeHtml(menu)}" target="_blank" rel="noopener noreferrer">View menu ↗</a>`, website && `<a href="${escapeHtml(website)}" target="_blank" rel="noopener noreferrer">Restaurant website ↗</a>`, phone && `<a href="${escapeHtml(phone)}">Call ${escapeHtml(place.properties.phone)}</a>`].filter(Boolean).join('');
+    const questions = [...new Set([...checks.unknown, ...checks.failed])];
+    return `<article class="place-card"><span class="place-index">${place.needsCheck ? 'Needs your check' : 'Details available'}</span><h3>${escapeHtml(place.name || 'Unnamed place')}</h3>${address ? `<p class="place-meta">${escapeHtml(address)}</p>` : ''}<p class="place-meta">Why this fits</p><div class="chips">${evidence || 'Taste match only — no detailed reason returned.'}</div><ul class="needs-list">${list(checks.passed, 'Supported:')}${list(checks.unknown, 'Unknown — confirm on the menu:')}${list(checks.failed, 'Does not match:')}</ul>${questions.length ? `<p class="check-heading">What to ask</p><ul class="needs-list">${questions.map(need => `<li>${escapeHtml(questionFor(need))}</li>`).join('')}</ul>` : ''}<div class="contact-links">${links || '<span>Menu and contact details aren’t available here. Please look them up before deciding.</span>'}</div><p class="place-meta">Please check the menu and contact the restaurant about any needs you cannot confirm.</p><div class="place-actions"><button type="button" data-action="confirm">I checked the menu — this is fine</button><button type="button" data-action="skip">Skip</button></div><p class="choice-status" aria-live="polite"></p></article>`;
   }).join('') : `<div class="notice">We couldn’t find places for this search. Try another location or favorites.</div>`;
 }
 $("#cards").addEventListener('click', event => {
