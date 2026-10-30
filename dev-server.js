@@ -95,7 +95,20 @@ export async function handler(req, res) {
       const diningId = idOf(diningTag);
       const excludedGenreIds = excludedResponses.flatMap((response, index) => entitiesFrom(response).filter(tag => tag.name?.toLowerCase() === excludedVenueQueries[index] && tag.type === 'urn:tag:genre:place' && idOf(tag)?.startsWith(`${diningId}:`)).map(idOf));
       const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: [diningId], take: 50 });
-      const places = entitiesFrom(payload).filter(place => isDiningPlace(place, diningId, excludedGenreIds) && matchesRequestedLocality(place, validated.location));
+      const candidates = entitiesFrom(payload);
+      const matches = place => isDiningPlace(place, diningId, excludedGenreIds) && matchesRequestedLocality(place, validated.location);
+      let places = candidates.filter(matches);
+      // Investigate one further page only when the first full page yields few local dining leads.
+      if (places.length < 3 && candidates.length === 50) {
+        try {
+          const next = await qloo.insights({ entities: input.entityIds, location: input.location, tags: [diningId], take: 50, offset: 50 });
+          const seen = new Set(places.map(idOf).filter(Boolean));
+          for (const place of entitiesFrom(next)) {
+            const id = idOf(place);
+            if (id && !seen.has(id) && matches(place)) { places.push(place); seen.add(id); }
+          }
+        } catch { /* Keep verified first-page results if the additional search fails. */ }
+      }
       const assessed = applyConstraints(places, rules);
       const filtered = assessed.filter((item) => item.eligible).sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));
       const ranked = [...assessed].sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));
