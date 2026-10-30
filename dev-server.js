@@ -70,9 +70,10 @@ export async function handler(req, res) {
       const rules = await resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || ''));
       const payload = await qloo.insights({ entities: input.entityIds, location: input.location, take: 20 });
       const places = entitiesFrom(payload);
-      const filtered = applyConstraints(places, rules).filter((item) => item.eligible);
+      const assessed = applyConstraints(places, rules);
+      const filtered = assessed.filter((item) => item.eligible).sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));
       const signals = selected.map((signal) => ({ id: idOf(signal), label: nameOf(signal) }));
-      return json(res, 200, { places: filtered.slice(0, Math.min(Number(input.take) || 5, 5)).map(({ place, passed }) => ({ ...place, evidence: evidenceFor(place, signals), constraints: passed })), calls: log.entries(), empty: places.length === 0, few: filtered.length < 3 }, sessionId);
+      return json(res, 200, { places: filtered.slice(0, Math.min(Number(input.take) || 5, 5)).map(({ place, passed }) => ({ ...place, evidence: evidenceFor(place, signals), constraints: passed })), calls: log.entries(), empty: places.length === 0, few: filtered.length < 3, insufficientDetails: assessed.filter(item => item.unknown.length > 0).length }, sessionId);
     }
     if (req.method === "POST" && url.pathname === "/compare") {
       const input = await body(req);
