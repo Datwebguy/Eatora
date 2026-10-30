@@ -37,6 +37,7 @@ export async function handler(req, res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
   const sessionId = req.headers["x-session-id"] || randomUUID();
   const session = { log: new SessionLog(), entities: new Set(), tags: new Set(), entityRecords: new Map(), tagRecords: new Map() };
   const { log } = session;

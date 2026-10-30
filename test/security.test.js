@@ -11,6 +11,8 @@ test('API rejects oversized and malformed input before provider calls', async ()
     const base = `http://127.0.0.1:${port}`;
     for (let i = 0; i < 50; i++) { try { await fetch(base + '/health'); break; } catch { await new Promise(r => setTimeout(r, 30)); } }
     const post = (path, body) => fetch(base + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+    const health = await fetch(base + '/health');
+    assert.match(health.headers.get('content-security-policy'), /frame-ancestors 'none'/);
     assert.equal((await fetch(base + '/health', { method: 'POST' })).status, 405);
     assert.equal((await fetch(base + '/compare', { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{}' })).status, 415);
     assert.equal((await post('/resolve', '{')).status, 400);
