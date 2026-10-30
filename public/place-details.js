@@ -17,3 +17,9 @@ export function questionFor(need) {
   if (lower.includes('heat') || lower.includes('spicy')) return 'Which dishes can be served mild and at a comfortable temperature?';
   return `Can you confirm this need for the dish: ${need}?`;
 }
+
+export function specialtyDishes(place) {
+  const dishes = place?.properties?.specialty_dishes;
+  if (!Array.isArray(dishes)) return [];
+  return dishes.map(item => typeof item === 'string' ? item : item?.name).filter(item => typeof item === 'string' && item.trim()).slice(0, 4);
+}

@@ -67,9 +67,13 @@ export async function handler(req, res) {
         if (!match) return json(res, 400, { error: "Please choose a match for each favorite." }, sessionId);
         selected.push(match);
       }
+      const diningTags = entitiesFrom(await qloo.tags('restaurant'));
+      const diningTag = diningTags.find(tag => tag.name?.toLowerCase() === 'restaurant' && tag.type === 'urn:tag:category:place' && idOf(tag));
+      if (!diningTag) return json(res, 200, { places: [], empty: true, few: true, calls: log.entries() }, sessionId);
       const rules = await resolveConstraints(qloo, input.constraints || [], String(input.medicationNotes || ''));
-      const payload = await qloo.insights({ entities: input.entityIds, location: input.location, take: 20 });
-      const places = entitiesFrom(payload);
+      const diningId = idOf(diningTag);
+      const payload = await qloo.insights({ entities: input.entityIds, location: input.location, tags: [diningId], take: 20 });
+      const places = entitiesFrom(payload).filter(place => Array.isArray(place.tags) && place.tags.some(tag => idOf(tag) === diningId));
       const assessed = applyConstraints(places, rules);
       const filtered = assessed.filter((item) => item.eligible).sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));
       const ranked = [...assessed].sort((a, b) => (b.place.query?.affinity ?? 0) - (a.place.query?.affinity ?? 0));
