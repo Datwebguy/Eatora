@@ -29,7 +29,7 @@ test('ambiguity must be resolved before insights, and the chosen IDs are checked
     const input = { favorites, location: 'Brooklyn', constraints: ['Low-sodium', 'Low-heat delivery'], entityIds: ['joe2', 'music', 'park'] };
     const result = await (await post('/recommend', input)).json();
     assert.equal(insights, 1); assert.equal(result.needsCheck, true); assert.equal(result.places.length, 1);
-    assert.deepEqual(result.places[0].checks.unknown, ['Low-sodium', 'Low-heat delivery']);
+    assert.deepEqual([...result.places[0].checks.unknown].sort(), ['Low-heat delivery', 'Low-sodium']);
     assert.deepEqual(result.places[0].checks.passed, []);
     const rejected = await post('/recommend', { ...input, entityIds: ['invented', 'music', 'park'] });
     assert.equal(rejected.status, 400); assert.equal(insights, 1);
