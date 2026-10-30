@@ -1,56 +1,75 @@
+<div align="center">
+
 # Eatora
 
-Eatora is an agent that helps caregivers and seniors find real dining options that match personal taste and hard practical constraints.
+### A more thoughtful place to start.
 
-Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/). The submission requires a functional public demo, a public open-source repository, and a live Qloo-powered workflow that judges can use end to end.
+Taste-led dining discovery for caregivers and the people they care for.
 
-It is built for the Qloo Agentic Hackathon. Cultural intelligence from Qloo is the differentiator: a plain LLM guesses places and ignores local affinity; Eatora resolves real entities, queries the taste graph, and applies constraints in code with visible evidence.
+[Open Eatora](https://eatora.vercel.app/) · [Start planning](https://eatora.vercel.app/app) · [Qloo](https://www.qloo.com/) · [License](LICENSE)
 
-## What it does
+</div>
 
-1. Accepts 3–5 favorites (restaurants, dishes, films, music, places), a location, and 2–3 constraints.
-2. Resolves every name against Qloo `/search`. Asks the user if ambiguous.
-3. Builds signals and calls `/v2/insights` for places (`urn:entity:place`) with location and interest signals.
-4. Applies hard constraints in the backend (soft texture, low-sodium, low-heat, simple medication notes). Nothing that fails a constraint is returned.
-5. Returns ranked places with Qloo evidence chips (which signals matched, affinity context).
-6. Shows a pure-LLM plan for the identical inputs so the difference is visible.
-7. Logs every Qloo call for the under-the-hood view.
+---
 
-## Why this product
+## A better way to choose a place
 
-Organizers listed senior meals with taste + age-specific needs (easy-to-chew, low-heat delivery, medication-aware) as an example. Tour routing and opener selection are already saturated. This job is not.
+Choosing where to eat can take more than finding a nearby restaurant. Eatora brings together a person's tastes and the practical details a caregiver needs to consider, so that the search begins with the person rather than a generic list.
 
-## Live demo requirements
+Enter a few favorites, a location, and the needs that matter today. Eatora uses Qloo's cultural intelligence to find real places related to those tastes and presents a shortlist to explore.
 
-- Hosted externally (Vercel, Render, or equivalent).
-- Judge can try the full journey end-to-end with no private access.
-- Public GitHub/GitLab/Bitbucket repo with an open-source license visible in the About section.
-- Every claim about a place or affinity must trace to a real Qloo response.
+## Using Eatora
 
-## Security and data rules (non-negotiable)
+1. Open [the planner](https://eatora.vercel.app/app) and enter three to five favorites, one per line. These can be artists, films, restaurants, or other familiar places.
+2. Add a city or neighborhood, choose two or three practical needs, and add any foods to avoid or limit.
+3. If a favorite has several possible matches, choose the one you meant. Eatora waits for your choice before searching for places.
+4. Explore the shortlist. Open **See the details** for the specific needs, questions to ask, and contact links when available. Mark a place as checked or skip it.
+5. Read **A general idea (not checked)** for a separate AI-generated comparison based on the same inputs.
 
-- API key lives only on the server. Never ship it to the browser.
-- Do not store user favorites, locations, or constraint data beyond the current session.
-- Do not hardcode restaurant lists, affinity scores, tags, or sample Qloo responses in production code.
-- Do not generate medical advice. Medication notes are simple exclusion filters only.
-- Invalid or empty Qloo results must be surfaced honestly; do not invent replacements.
+The shortlist identifies needs that require confirmation. A place's category or listed dishes do not establish that a particular meal meets a dietary need; check the menu or contact the restaurant before deciding. Food notes are treated as exclusions, not medical advice.
 
-## Quick start for development
+## How Qloo powers the experience
 
-1. Obtain a hackathon API key for `https://hackathon.api.qloo.com`.
-2. Set `QLOO_API_KEY` in the server environment.
-3. Implement the backend flow first: search → insights → constraint filter → evidence assembly.
-4. Add the frontend only after the backend returns verified results.
+[Qloo](https://www.qloo.com/) connects cultural interests across categories such as music, film, food, and places. Eatora uses its taste intelligence to make location-aware discoveries from the favorites a caregiver supplies:
 
-## Project files
+- **Search** resolves favorites to Qloo entities and offers choices when a name is ambiguous.
+- **Tags** resolves relevant venue categories and practical terms to Qloo's own identifiers.
+- **Insights** returns places using the selected interests and location. Eatora checks the returned venue category and locality before building the shortlist.
+- **Evidence** is drawn from the explainability data returned for each place when available. When a detailed reason is unavailable, Eatora says so.
 
-- `HANDOVER.md` — start here
-- `PRODUCT.md` — full specification
-- `API_GUIDE.md` — exact endpoints, parameters, and pitfalls
-- `AGENT_PROMPTS.md` — system prompts and tool rules
-- `EXAMPLES.md` — personas and test cases
-- `BUILD_PLAN.md` — prioritized tasks
+The separate OpenAI comparison receives only the original favorites, location, and needs. It does not receive Qloo results and is labelled as an unchecked general idea.
+
+## Run locally
+
+Requirements: Node.js 20 or later and a Qloo API key. An OpenAI key enables the comparison.
+
+```bash
+git clone https://github.com/Datwebguy/Eatora.git
+cd Eatora
+```
+
+Set the following environment variables on the server, using `.env.example` as a reference. Supply them through your shell or hosting provider; the application does not automatically load an `.env` file.
+
+```bash
+export QLOO_API_KEY="your-qloo-key"
+export QLOO_BASE_URL="https://hackathon.api.qloo.com"
+export OPENAI_API_KEY="your-openai-key"
+export OPENAI_MODEL="gpt-4o-mini"
+npm start
+```
+
+Open [http://localhost:3000](http://localhost:3000). Set `PORT` to use a different local port. Keep keys server-side and out of source control. The Qloo base URL above is specific to the supplied key environment; use the endpoint associated with your key.
+
+Run the automated checks with:
+
+```bash
+npm test
+```
+
+## Built with
+
+Node.js, JavaScript, Qloo Search, Tags and Insights, OpenAI, and Vercel. The interface uses a warm cream and orange palette, with light and dark modes for comfortable reading.
 
 ## License
 
-MIT (or Apache-2.0). Must appear in the repository About section.
+Eatora is available under the [MIT License](LICENSE).
