@@ -11,7 +11,6 @@ import { constraintQueries, entitiesFrom, evidenceFor, idOf, nameOf, rankPlaces,
 import { sealReceipt } from "./lib/receipt.js";
 
 const port = Number(process.env.PORT || 3000);
-const sessions = new Map();
 const publicRoot = join(fileURLToPath(new URL(".", import.meta.url)), "public");
 const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
 
@@ -28,8 +27,7 @@ async function body(req) {
 
 export async function handler(req, res) {
   const sessionId = req.headers["x-session-id"] || randomUUID();
-  const session = sessions.get(sessionId) || { log: new SessionLog(), entities: new Set(), tags: new Set(), entityRecords: new Map(), tagRecords: new Map(), investigations: 0 };
-  sessions.set(sessionId, session);
+  const session = { log: new SessionLog(), entities: new Set(), tags: new Set(), entityRecords: new Map(), tagRecords: new Map() };
   const { log } = session;
   const qloo = new QlooClient({ apiKey: process.env.QLOO_API_KEY, baseUrl: process.env.QLOO_BASE_URL, log });
   const openai = new OpenAIClient({ apiKey: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL });
